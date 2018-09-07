@@ -346,6 +346,7 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
             if (success) {
                 Toast.makeText(getApplicationContext(),"Login Successful!",Toast.LENGTH_SHORT).show();
                 Intent i = new Intent(getApplicationContext(),PermissionActivity.class);
+                i.putExtra("name",mEmail);
                 startActivity(i);
                 //finish();
             } else {

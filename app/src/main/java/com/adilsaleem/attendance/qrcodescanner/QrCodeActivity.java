@@ -55,6 +55,7 @@ public class QrCodeActivity extends AppCompatActivity implements Callback, OnCli
     private boolean mHasSurface;
     private boolean mPermissionOk;
     private InactivityTimer mInactivityTimer;
+    private QrCodeFinderView mQrCodeFinderView;
     private SurfaceView mSurfaceView;
     private View mLlFlashLight;
     private final DecodeManager mDecodeManager = new DecodeManager();
@@ -94,7 +95,10 @@ public class QrCodeActivity extends AppCompatActivity implements Callback, OnCli
         initView();
         initData();
         mApplicationContext = getApplicationContext();
-
+        View decorView = getWindow().getDecorView();
+        int uiOptions = View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                | View.SYSTEM_UI_FLAG_FULLSCREEN;
+        decorView.setSystemUiVisibility(uiOptions);
     }
 
     private void checkPermission() {
@@ -118,6 +122,7 @@ public class QrCodeActivity extends AppCompatActivity implements Callback, OnCli
         mTvFlashLightText = (TextView) findViewById(R.id.qr_code_tv_flash_light);
         mSurfaceView = (SurfaceView) findViewById(R.id.qr_code_preview_view);
         mLlFlashLight = findViewById(R.id.qr_code_ll_flash_light);
+        mQrCodeFinderView = (QrCodeFinderView) findViewById(R.id.qr_code_view_finder);
         mHasSurface = false;
         mIvFlashLight.setOnClickListener(this);
         tvPic.setOnClickListener(this);
@@ -211,6 +216,7 @@ public class QrCodeActivity extends AppCompatActivity implements Callback, OnCli
             mDecodeManager.showPermissionDeniedDialog(this);
             return;
         }
+        mQrCodeFinderView.setVisibility(View.VISIBLE);
         mSurfaceView.setVisibility(View.VISIBLE);
         mLlFlashLight.setVisibility(View.VISIBLE);
         findViewById(R.id.qr_code_view_background).setVisibility(View.GONE);

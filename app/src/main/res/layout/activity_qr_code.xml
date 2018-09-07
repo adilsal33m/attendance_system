@@ -26,9 +26,9 @@
             android:gravity="center"
             android:padding="10dp"
             android:text="@string/qr_code_select_picture"
-            android:visibility="gone"
             android:textColor="@android:color/white"
-            android:textSize="15sp"/>
+            android:textSize="15sp"
+            android:visibility="gone"/>
 
     </RelativeLayout>
 
@@ -39,6 +39,13 @@
         android:layout_below="@id/qr_code_header_bar"
         android:layout_gravity="center"
         android:visibility="visible"/>
+
+    <com.adilsaleem.attendance.qrcodescanner.view.QrCodeFinderView
+        android:id="@+id/qr_code_view_finder"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerInParent="true"
+        android:visibility="gone"/>
 
     <LinearLayout
         android:id="@+id/qr_code_ll_flash_light"

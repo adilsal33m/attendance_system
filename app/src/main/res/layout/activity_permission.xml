@@ -72,6 +72,24 @@
                 android:layout_margin="16dp"
                 android:layout_alignParentLeft="true"
                 android:layout_below="@id/gps_text"/>
+
+            <Switch
+                android:id="@+id/phone_switch"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_margin="16dp"
+                android:layout_alignParentRight="true"
+                android:layout_below="@id/camera_switch"/>
+
+            <TextView
+                android:id="@+id/phone_label"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/phone"
+                android:textSize="20sp"
+                android:layout_margin="16dp"
+                android:layout_alignParentLeft="true"
+                android:layout_below="@id/camera_label"/>
         </RelativeLayout>
     </android.support.v7.widget.CardView>
 

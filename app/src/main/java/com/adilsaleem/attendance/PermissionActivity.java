@@ -1,6 +1,7 @@
 package com.adilsaleem.attendance;
 
 import android.Manifest;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -10,6 +11,7 @@ import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.telephony.TelephonyManager;
 import android.view.View;
 import android.widget.Button;
 import android.widget.CompoundButton;
@@ -20,12 +22,16 @@ import com.adilsaleem.attendance.qrcodescanner.QrCodeActivity;
 
 public class PermissionActivity extends AppCompatActivity {
 
+    private static final int MY_PERMISSIONS_REQUEST_PHONE = 123;
     private static final int MY_PERMISSIONS_REQUEST_LOCATION = 122;
     private static final int MY_PERMISSIONS_REQUEST_CAMERA = 121;
     private static final int REQUEST_CODE_QR_SCAN = 101;
     private Switch gpsSwitch;
     private Switch cameraSwitch;
+    private Switch phoneSwitch;
     private Button goButton;
+    LocationTrack locationTrack;
+    String name;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -33,14 +39,21 @@ public class PermissionActivity extends AppCompatActivity {
         setContentView(R.layout.activity_permission);
         setTitle(R.string.permission_title);
 
+        name = getIntent().getStringExtra("name");
         gpsSwitch = findViewById(R.id.gps_switch);
         cameraSwitch = findViewById(R.id.camera_switch);
         goButton = findViewById(R.id.go_button);
+        phoneSwitch = findViewById(R.id.phone_switch);
 
         if (checkLocationPermission()) {
-            gpsSwitch.setChecked(true);
-            gpsSwitch.setEnabled(false);
-            gpsSwitch.setText("Enabled");
+            locationTrack = new LocationTrack(this);
+            if(locationTrack.checkGPS) {
+                gpsSwitch.setChecked(true);
+                gpsSwitch.setEnabled(false);
+                gpsSwitch.setText("Enabled");
+            }else{
+                locationTrack.showSettingsAlert();
+            }
         }else{
             gpsSwitch.setChecked(false);
         }
@@ -52,6 +65,26 @@ public class PermissionActivity extends AppCompatActivity {
         }else{
             cameraSwitch.setChecked(false);
         }
+
+        if (checkPhonePermission()) {
+            phoneSwitch.setChecked(true);
+            phoneSwitch.setEnabled(false);
+            phoneSwitch.setText("Enabled");
+        }else{
+            phoneSwitch.setChecked(false);
+        }
+
+        phoneSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                if (isChecked) {
+                    requestPhonePermission();
+                    phoneSwitch.setEnabled(false);
+                    phoneSwitch.setText("Enabled");
+                }
+            }
+        });
+
 
         cameraSwitch.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
@@ -68,9 +101,9 @@ public class PermissionActivity extends AppCompatActivity {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                 if (isChecked) {
-                    requestLocationPermission();
                     gpsSwitch.setEnabled(false);
                     gpsSwitch.setText("Enabled");
+                    requestLocationPermission();
                 }
             }
         });
@@ -78,7 +111,7 @@ public class PermissionActivity extends AppCompatActivity {
         goButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if(checkCameraPermission() && checkLocationPermission()){
+                if(checkCameraPermission() && checkLocationPermission() && locationTrack.checkGPS && checkPhonePermission()){
                     Intent i = new Intent(PermissionActivity.this,QrCodeActivity.class);
                     startActivityForResult( i,REQUEST_CODE_QR_SCAN);
                 }else{
@@ -103,9 +136,25 @@ public class PermissionActivity extends AppCompatActivity {
         return ContextCompat.checkSelfPermission( this, Manifest.permission.CAMERA ) == PackageManager.PERMISSION_GRANTED;
     }
 
+    private void requestPhonePermission() {
+        if (!checkPhonePermission()) {
+            ActivityCompat.requestPermissions(this, new String[] {Manifest.permission.READ_PHONE_STATE}, MY_PERMISSIONS_REQUEST_PHONE);
+        }
+    }
+
+    private boolean checkPhonePermission() {
+        return ContextCompat.checkSelfPermission( this, Manifest.permission.READ_PHONE_STATE ) == PackageManager.PERMISSION_GRANTED;
+    }
+
     private void requestLocationPermission() {
         if (!checkLocationPermission()) {
             ActivityCompat.requestPermissions(this, new String[] {Manifest.permission.ACCESS_FINE_LOCATION,Manifest.permission.ACCESS_COARSE_LOCATION}, MY_PERMISSIONS_REQUEST_LOCATION);
+        }
+        if(!locationTrack.checkGPS){
+            gpsSwitch.setChecked(false);
+            gpsSwitch.setEnabled(true);
+            gpsSwitch.setText("");
+            locationTrack.showSettingsAlert();
         }
     }
 
@@ -118,11 +167,22 @@ public class PermissionActivity extends AppCompatActivity {
                 cameraSwitch.setEnabled(true);
                 cameraSwitch.setText("");
             }
+        }else if(requestCode == MY_PERMISSIONS_REQUEST_PHONE){
+            if (PackageManager.PERMISSION_GRANTED != grantResults[0]) {
+                phoneSwitch.setChecked(false);
+                phoneSwitch.setEnabled(true);
+                phoneSwitch.setText("");
+            }
         }else if(requestCode == MY_PERMISSIONS_REQUEST_LOCATION){
             if (PackageManager.PERMISSION_GRANTED != grantResults[0] || PackageManager.PERMISSION_GRANTED != grantResults[1]) {
-                gpsSwitch.setChecked(false);
-                gpsSwitch.setEnabled(true);
-                gpsSwitch.setText("");
+                locationTrack = new LocationTrack(this);
+                if (locationTrack.checkGPS){
+                    gpsSwitch.setChecked(false);
+                    gpsSwitch.setEnabled(true);
+                    gpsSwitch.setText("");
+                }else{
+                    locationTrack.showSettingsAlert();
+                }
             }
         }
     }
@@ -156,18 +216,29 @@ public class PermissionActivity extends AppCompatActivity {
             if(data==null)
                 return;
             //Getting the passed result
-            String result = data.getStringExtra("com.blikoon.qrcodescanner.got_qr_scan_relult");
-            AlertDialog alertDialog = new AlertDialog.Builder(this).create();
-            alertDialog.setTitle("Scan result");
-            alertDialog.setMessage(result);
-            alertDialog.setButton(AlertDialog.BUTTON_NEUTRAL, "OK",
-                    new DialogInterface.OnClickListener() {
-                        public void onClick(DialogInterface dialog, int which) {
-                            dialog.dismiss();
-                        }
-                    });
-            alertDialog.show();
+            if (locationTrack.canGetLocation()) {
+                double longitude = locationTrack.getLongitude();
+                double latitude = locationTrack.getLatitude();
+                TelephonyManager telephonyManager;
+                telephonyManager = (TelephonyManager) getSystemService(Context.TELEPHONY_SERVICE);
+                String deviceId = telephonyManager.getDeviceId();
 
+                //Toast.makeText(getApplicationContext(), "Longitude:" + Double.toString(longitude) + "\nLatitude:" + Double.toString(latitude), Toast.LENGTH_SHORT).show();
+                String result = data.getStringExtra("com.blikoon.qrcodescanner.got_qr_scan_relult");
+                AlertDialog alertDialog = new AlertDialog.Builder(this).create();
+                alertDialog.setTitle("Scan result");
+                alertDialog.setMessage("ID: "+ name + "\nLongitude: " + Double.toString(longitude) + "\nLatitude: " + Double.toString(latitude)+
+                        "\nDevice ID: "+deviceId + "\nTime: "+System.nanoTime());
+                alertDialog.setButton(AlertDialog.BUTTON_NEUTRAL, "OK",
+                        new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int which) {
+                                dialog.dismiss();
+                            }
+                        });
+                alertDialog.show();
+            } else {
+                locationTrack.showSettingsAlert();
+            }
         }
     }
 }
